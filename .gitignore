@@ -1,0 +1,28 @@
+# Build output
+codeforge_compiler
+*.o
+*.a
+*.so
+
+# Flex & Bison generated files
+lex.yy.c
+lex.yy.cc
+y.tab.c
+y.tab.h
+parser.tab.c
+parser.tab.h
+parser.tab.hpp
+parser.output
+location.hh
+position.hh
+stack.hh
+
+# Temporary execution files
+*.tmp
+temp_code.*
+
+# OS and Editor artifacts
+.DS_Store
+.vscode/
+.idea/
+*.swp
