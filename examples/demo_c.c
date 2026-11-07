@@ -1,19 +1,16 @@
-// CodeForge: C-Style Demonstration Program
-int x = 10;
-float y = 20.5;
-bool flag = true;
+// CodeForge: C Demo
+int base = 10;
+float rate = 2.5;
+int iterations = 4;
+int counter = 0;
 
-int result = 0;
-
-if (x < 15 && flag) {
-    result = x * 2 + 5;
-    print(result);
-} else {
-    result = 0;
-    print(result);
+while (counter < iterations) {
+    base = base + 5;
+    counter = counter + 1;
 }
 
-while (x > 0) {
-    x = x - 2;
-    print(x);
+if (base > 20) {
+    printf(base);
+} else {
+    printf(counter);
 }

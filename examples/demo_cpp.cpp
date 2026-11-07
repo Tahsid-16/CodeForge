@@ -1,17 +1,14 @@
-// CodeForge: C++-Style Demonstration Program
-int count = 5;
-float rate = 1.25;
-bool is_valid = false;
+// CodeForge: C++ Demo
+int score = 85;
+bool passed = false;
 
-float total = count * rate;
-
-if (total >= 5.0) {
-    is_valid = true;
+if (score >= 50) {
+    passed = true;
     
-    // Nested scope testing
-    int inner_multiplier = 3;
-    int scoped_result = count * inner_multiplier;
-    print(scoped_result);
+    // Nested scope block
+    int bonus = 10;
+    score = score + bonus;
+    cout << score;
 }
 
-print(is_valid);
+cout << passed;

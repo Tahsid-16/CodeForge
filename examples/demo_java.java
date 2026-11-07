@@ -1,17 +1,14 @@
-// CodeForge: Java-Style Demonstration Program
-int i = 0;
-int max = 10;
+// CodeForge: Java Demo
 int sum = 0;
-bool done = false;
+int limit = 5;
+boolean is_complete = false;
 
-while (i < max && !done) {
-    sum = sum + i;
-    i = i + 1;
-    
-    if (sum > 20) {
-        done = true;
+for (int step = 1; step <= limit; step = step + 1) {
+    sum = sum + step;
+    if (sum >= 10) {
+        is_complete = true;
     }
 }
 
-print(sum);
-print(done);
+System.out.println(sum);
+System.out.println(is_complete);
