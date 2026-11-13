@@ -6,7 +6,7 @@ CodeForge is an educational web-based compiler supporting a unified subset of **
 
 ## Features & Supported Subset
 
-* **Data Types**: `int`, `float`, `bool`
+* **Data Types**: `int`, `float`, `bool` (C/C++), `boolean` (Java)
 * **Literals**: Integer (`42`), Floating-point (`3.14`), Boolean (`true`, `false`)
 * **Identifiers**: Standard naming rules (`[a-zA-Z_][a-zA-Z0-9_]*`)
 * **Operators**:
@@ -17,7 +17,7 @@ CodeForge is an educational web-based compiler supporting a unified subset of **
   * Variable declarations & assignments (`int x = 10;`, `x = x + 1;`)
   * Branching (`if`, `if-else`)
   * Loops (`while`, `for`)
-  * Output statements (`print(...)`, `printf(...)`, `std::cout`, `System.out.println(...)`)
+  * Output statements (`print(...)`, `printf(...)`, `cout << ...`, `std::cout << ...`, `System.out.println(...)`)
   * Arbitrarily nested blocks with lexical scoping (`{ ... }`)
 * **Diagnostics & Error Handling**: Line-accurate reporting for lexical anomalies, syntax errors with recovery sync points, duplicate declarations, undeclared variable references, and type mismatches.
 * **Intermediate Representation**: Linear Three-Address Code (TAC) using temporaries (`t1`, `t2`) and label-based branching (`L1`, `L2`).
