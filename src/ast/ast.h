@@ -164,16 +164,25 @@ public:
 class VarDeclNode : public StmtNode {
 public:
     DataType varType;
+    TypeKeyword rawKeyword;
     std::string name;
     std::unique_ptr<ExprNode> initializer; // nullptr if declared without initialization
     int resolvedScopeId = -1;              // Scope ID where this variable lives
 
+    VarDeclNode(DataType type, TypeKeyword kw, std::string varName, ExprNode* init = nullptr, int ln = 0)
+        : StmtNode(ln), varType(type), rawKeyword(kw), name(std::move(varName)), initializer(init) {}
+
+    // Convenience overload defaulting rawKeyword from DataType
     VarDeclNode(DataType type, std::string varName, ExprNode* init = nullptr, int ln = 0)
-        : StmtNode(ln), varType(type), name(std::move(varName)), initializer(init) {}
+        : StmtNode(ln),
+          varType(type),
+          rawKeyword(type == DataType::BOOL ? TypeKeyword::KW_BOOL :
+                     type == DataType::FLOAT ? TypeKeyword::KW_FLOAT : TypeKeyword::KW_INT),
+          name(std::move(varName)),
+          initializer(init) {}
 
     void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };
-
 class AssignNode : public StmtNode {
 public:
     std::string name;

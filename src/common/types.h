@@ -7,6 +7,32 @@
 
 namespace codeforge {
 
+    // Target language mode for Strict Mode enforcement
+enum class SourceLanguage {
+    AUTO, // Infer from file extension (.c, .cpp, .java), fallback to permissive
+    C,
+    CPP,
+    JAVA
+};
+
+// Tracks exact type keyword used in source code for strict language validation
+enum class TypeKeyword {
+    KW_INT,
+    KW_FLOAT,
+    KW_BOOL,    // C / C++
+    KW_BOOLEAN  // Java only
+};
+
+inline std::string sourceLanguageToString(SourceLanguage lang) {
+    switch (lang) {
+        case SourceLanguage::AUTO: return "auto";
+        case SourceLanguage::C:    return "C";
+        case SourceLanguage::CPP:  return "C++";
+        case SourceLanguage::JAVA: return "Java";
+    }
+    return "auto";
+}
+
 // ============================================================================
 // Core Type System
 // ============================================================================
