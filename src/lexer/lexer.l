@@ -1,4 +1,4 @@
-/* CodeForge Lexer */
+/* CodeForge Lexer (Fixed: MinGW C++17 Options, Indented Comments & ErrorReporter) */
 %{
 #include <cstdio>
 #include <cstdlib>
@@ -30,7 +30,7 @@ void lexer_reset() {
 
 /* Record matched token metadata and return its Bison token ID */
 static int recordToken(const char* tokenName, int tokenId) {
-    g_tokens.emplace_back(tokenName, yytext, line_num, token_col);
+    g_tokens.push_back(codeforge::TokenInfo{tokenName, yytext, line_num, token_col});
     return tokenId;
 }
 
@@ -40,6 +40,7 @@ static int recordToken(const char* tokenName, int tokenId) {
     col_num += yyleng;
 %}
 
+%option never-interactive nounput noinput
 %x BLOCK_COMMENT
 
 DIGIT       [0-9]
@@ -49,11 +50,11 @@ FLOAT_LIT   {DIGIT}+\.{DIGIT}+
 
 %%
 
-/* Whitespace & Newlines */
+    /* Whitespace & Newlines */
 [ \t\r]+                { /* skip whitespace and Windows CR */ }
 \n                      { line_num++; col_num = 1; }
 
-/* Single-Line & Multi-Line Comments */
+    /* Single-Line & Multi-Line Comments */
 "//"[^\r\n]*            { /* skip single-line comment */ }
 "/*"                    {
                             comment_start_line = line_num;
@@ -75,23 +76,23 @@ FLOAT_LIT   {DIGIT}+\.{DIGIT}+
                             return 0;
                         }
 
-/* Type Keywords (C, C++, Java) */
+    /* Type Keywords (C, C++, Java) */
 "int"                   { return recordToken("TOK_INT", TOK_INT); }
 "float"                 { return recordToken("TOK_FLOAT", TOK_FLOAT); }
 "bool"                  { return recordToken("TOK_BOOL", TOK_BOOL); }
 "boolean"               { return recordToken("TOK_BOOLEAN", TOK_BOOLEAN); }
 
-/* Control-Flow Keywords */
+    /* Control-Flow Keywords */
 "if"                    { return recordToken("TOK_IF", TOK_IF); }
 "else"                  { return recordToken("TOK_ELSE", TOK_ELSE); }
 "while"                 { return recordToken("TOK_WHILE", TOK_WHILE); }
 "for"                   { return recordToken("TOK_FOR", TOK_FOR); }
 
-/* Boolean Literals */
+    /* Boolean Literals */
 "true"                  { yylval.bval = true;  return recordToken("TOK_TRUE", TOK_TRUE); }
 "false"                 { yylval.bval = false; return recordToken("TOK_FALSE", TOK_FALSE); }
 
-/* Multi-Language Output Keywords */
+    /* Multi-Language Output Keywords */
 "print"                 { return recordToken("TOK_PRINT", TOK_PRINT); }
 "printf"                { return recordToken("TOK_PRINTF", TOK_PRINTF); }
 "cout"                  { return recordToken("TOK_COUT", TOK_COUT); }
@@ -100,7 +101,7 @@ FLOAT_LIT   {DIGIT}+\.{DIGIT}+
 "out"                   { return recordToken("TOK_OUT", TOK_OUT); }
 "println"               { return recordToken("TOK_PRINTLN", TOK_PRINTLN); }
 
-/* Multi-Character Operators */
+    /* Multi-Character Operators */
 "=="                    { return recordToken("TOK_EQ", TOK_EQ); }
 "!="                    { return recordToken("TOK_NEQ", TOK_NEQ); }
 "<="                    { return recordToken("TOK_LE", TOK_LE); }
@@ -110,7 +111,7 @@ FLOAT_LIT   {DIGIT}+\.{DIGIT}+
 "<<"                    { return recordToken("TOK_SHL", TOK_SHL); }
 "::"                    { return recordToken("TOK_SCOPE", TOK_SCOPE); }
 
-/* Single-Character Operators */
+    /* Single-Character Operators */
 "+"                     { return recordToken("TOK_PLUS", TOK_PLUS); }
 "-"                     { return recordToken("TOK_MINUS", TOK_MINUS); }
 "*"                     { return recordToken("TOK_MUL", TOK_MUL); }
@@ -122,7 +123,7 @@ FLOAT_LIT   {DIGIT}+\.{DIGIT}+
 "="                     { return recordToken("TOK_ASSIGN", TOK_ASSIGN); }
 "."                     { return recordToken("TOK_DOT", TOK_DOT); }
 
-/* Delimiters & Punctuation */
+    /* Delimiters & Punctuation */
 "("                     { return recordToken("TOK_LPAREN", TOK_LPAREN); }
 ")"                     { return recordToken("TOK_RPAREN", TOK_RPAREN); }
 "{"                     { return recordToken("TOK_LBRACE", TOK_LBRACE); }
@@ -130,12 +131,12 @@ FLOAT_LIT   {DIGIT}+\.{DIGIT}+
 ";"                     { return recordToken("TOK_SEMI", TOK_SEMI); }
 ","                     { return recordToken("TOK_COMMA", TOK_COMMA); }
 
-/* Numeric Literals & Identifiers */
+    /* Numeric Literals & Identifiers */
 {FLOAT_LIT}             { yylval.dval = std::stod(yytext); return recordToken("TOK_FLOAT_LIT", TOK_FLOAT_LIT); }
 {INT_LIT}               { yylval.ival = std::stoi(yytext); return recordToken("TOK_INT_LIT", TOK_INT_LIT); }
 {ID}                    { yylval.sval = new std::string(yytext); return recordToken("TOK_ID", TOK_ID); }
 
-/* Unrecognized Characters -> Centralized ErrorReporter */
+    /* Unrecognized Characters -> Centralized ErrorReporter */
 .                       {
                             if (g_error_reporter) {
                                 g_error_reporter->reportLexical(
