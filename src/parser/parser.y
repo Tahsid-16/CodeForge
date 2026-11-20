@@ -1,4 +1,4 @@
-/* CodeForge Parser (Step 6: Expressions, Variable Declarations & Assignments) */
+/* CodeForge Parser (Step 7: Control Flow, Blocks & Convergent C/C++/Java Output) */
 
 %code requires {
     #include <string>
@@ -78,10 +78,12 @@ static codeforge::DataType keywordToDataType(codeforge::TypeKeyword kw) {
 %right TOK_NOT UMINUS UPLUS
 
 /* Non-Terminal Types */
-%type <prog> program stmt_list
-%type <kw>   type_spec
-%type <stmt> stmt var_decl var_decl_core assign_stmt assign_core
-%type <expr> expr
+%type <prog>  program stmt_list
+%type <kw>    type_spec
+%type <stmt>  stmt var_decl var_decl_core assign_stmt assign_core
+%type <stmt>  if_stmt while_stmt for_stmt for_init for_update print_stmt
+%type <block> block block_stmt_list
+%type <expr>  expr for_cond
 
 %start program
 
@@ -106,9 +108,32 @@ stmt_list
     }
     ;
 
+block
+    : TOK_LBRACE block_stmt_list TOK_RBRACE {
+        $$ = $2;
+    }
+    ;
+
+block_stmt_list
+    : block_stmt_list stmt {
+        if ($2) {
+            $1->addStatement($2);
+        }
+        $$ = $1;
+    }
+    | /* empty */ {
+        $$ = new codeforge::BlockNode(line_num);
+    }
+    ;
+
 stmt
     : var_decl    { $$ = $1; }
     | assign_stmt { $$ = $1; }
+    | print_stmt  { $$ = $1; }
+    | if_stmt     { $$ = $1; }
+    | while_stmt  { $$ = $1; }
+    | for_stmt    { $$ = $1; }
+    | block       { $$ = $1; }
     | TOK_SEMI    { $$ = nullptr; }
     ;
 
@@ -149,6 +174,61 @@ assign_core
         std::string name = *$1;
         delete $1;
         $$ = new codeforge::AssignNode(std::move(name), $3, line_num);
+    }
+    ;
+
+if_stmt
+    : TOK_IF TOK_LPAREN expr TOK_RPAREN stmt %prec LOWER_THAN_ELSE {
+        $$ = new codeforge::IfNode($3, $5, nullptr, line_num);
+    }
+    | TOK_IF TOK_LPAREN expr TOK_RPAREN stmt TOK_ELSE stmt {
+        $$ = new codeforge::IfNode($3, $5, $7, line_num);
+    }
+    ;
+
+while_stmt
+    : TOK_WHILE TOK_LPAREN expr TOK_RPAREN stmt {
+        $$ = new codeforge::WhileNode($3, $5, line_num);
+    }
+    ;
+
+for_stmt
+    : TOK_FOR TOK_LPAREN for_init TOK_SEMI for_cond TOK_SEMI for_update TOK_RPAREN stmt {
+        $$ = new codeforge::ForNode($3, $5, $7, $9, line_num);
+    }
+    ;
+
+for_init
+    : var_decl_core { $$ = $1; }
+    | assign_core   { $$ = $1; }
+    | /* empty */   { $$ = nullptr; }
+    ;
+
+for_cond
+    : expr          { $$ = $1; }
+    | /* empty */   { $$ = nullptr; }
+    ;
+
+for_update
+    : assign_core   { $$ = $1; }
+    | /* empty */   { $$ = nullptr; }
+    ;
+
+print_stmt
+    : TOK_PRINT TOK_LPAREN expr TOK_RPAREN TOK_SEMI {
+        $$ = new codeforge::PrintNode($3, codeforge::PrintFlavor::GENERIC_PRINT, line_num);
+    }
+    | TOK_PRINTF TOK_LPAREN expr TOK_RPAREN TOK_SEMI {
+        $$ = new codeforge::PrintNode($3, codeforge::PrintFlavor::C_PRINTF, line_num);
+    }
+    | TOK_COUT TOK_SHL expr TOK_SEMI {
+        $$ = new codeforge::PrintNode($3, codeforge::PrintFlavor::CPP_COUT, line_num);
+    }
+    | TOK_STD TOK_SCOPE TOK_COUT TOK_SHL expr TOK_SEMI {
+        $$ = new codeforge::PrintNode($5, codeforge::PrintFlavor::CPP_COUT, line_num);
+    }
+    | TOK_SYSTEM TOK_DOT TOK_OUT TOK_DOT TOK_PRINTLN TOK_LPAREN expr TOK_RPAREN TOK_SEMI {
+        $$ = new codeforge::PrintNode($7, codeforge::PrintFlavor::JAVA_SYSOUT, line_num);
     }
     ;
 
