@@ -1,4 +1,6 @@
-/* CodeForge Parser (Step 7: Control Flow, Blocks & Convergent C/C++/Java Output) */
+/* CodeForge Parser (Step 8: Verbose Error Diagnostics & Panic-Mode Recovery) */
+
+%error-verbose
 
 %code requires {
     #include <string>
@@ -19,6 +21,7 @@
 extern int yylex(void);
 extern int line_num;
 extern int token_col;
+extern char* yytext;
 extern codeforge::ErrorReporter* g_error_reporter;
 
 /* Root AST pointer populated by yyparse() and consumed by src/main.cpp */
@@ -51,6 +54,9 @@ static codeforge::DataType keywordToDataType(codeforge::TypeKeyword kw) {
     codeforge::BlockNode* block;
     codeforge::ProgramNode* prog;
 }
+
+/* Free discarded heap-allocated semantic values during panic-mode error recovery */
+%destructor { delete $$; } <sval> <expr> <stmt> <block>
 
 /* Terminal Token Declarations (1-to-1 match with src/lexer/lexer.l) */
 %token TOK_INT TOK_FLOAT TOK_BOOL TOK_BOOLEAN
@@ -112,6 +118,11 @@ block
     : TOK_LBRACE block_stmt_list TOK_RBRACE {
         $$ = $2;
     }
+    | TOK_LBRACE block_stmt_list error TOK_RBRACE {
+        /* Synchronize on closing brace and keep valid statements parsed before the error */
+        yyerrok;
+        $$ = $2;
+    }
     ;
 
 block_stmt_list
@@ -135,6 +146,11 @@ stmt
     | for_stmt    { $$ = $1; }
     | block       { $$ = $1; }
     | TOK_SEMI    { $$ = nullptr; }
+    | error TOK_SEMI {
+        /* Synchronize on semicolon and continue parsing subsequent statements */
+        yyerrok;
+        $$ = nullptr;
+    }
     ;
 
 type_spec
@@ -264,10 +280,15 @@ expr
 %%
 
 void yyerror(const char* s) {
+    std::string msg = s ? s : "Syntax error";
+    if (yytext && yytext[0] != '\0' && yytext[0] != '\n' && yytext[0] != '\r') {
+        msg += " (near '" + std::string(yytext) + "')";
+    }
+
     if (g_error_reporter) {
-        g_error_reporter->reportSyntax(line_num, s ? s : "Syntax error", token_col);
+        g_error_reporter->reportSyntax(line_num, msg, token_col);
     } else {
         std::fprintf(stderr, "Syntax Error at line %d, col %d: %s\n",
-                     line_num, token_col, s ? s : "Syntax error");
+                     line_num, token_col, msg.c_str());
     }
 }
