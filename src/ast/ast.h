@@ -13,6 +13,7 @@ namespace codeforge {
 class IntLiteralNode;
 class FloatLiteralNode;
 class BoolLiteralNode;
+class StringLiteralNode;
 class IdentifierNode;
 class BinaryExprNode;
 class UnaryExprNode;
@@ -40,6 +41,7 @@ public:
     virtual void visit(IntLiteralNode& node) = 0;
     virtual void visit(FloatLiteralNode& node) = 0;
     virtual void visit(BoolLiteralNode& node) = 0;
+    virtual void visit(StringLiteralNode& node) = 0;
     virtual void visit(IdentifierNode& node) = 0;
     virtual void visit(BinaryExprNode& node) = 0;
     virtual void visit(UnaryExprNode& node) = 0;
@@ -124,6 +126,18 @@ public:
     void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };
 
+class StringLiteralNode : public ExprNode {
+public:
+    std::string value;
+
+    explicit StringLiteralNode(std::string val, int ln = 0)
+        : ExprNode(ln), value(std::move(val)) {
+        inferredType = DataType::STRING;
+    }
+
+    void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
+};
+
 class IdentifierNode : public ExprNode {
 public:
     std::string name;
@@ -183,6 +197,7 @@ public:
 
     void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 };
+
 class AssignNode : public StmtNode {
 public:
     std::string name;
