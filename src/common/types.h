@@ -7,7 +7,7 @@
 
 namespace codeforge {
 
-    // Target language mode for Strict Mode enforcement
+// Target language mode for Strict Mode enforcement
 enum class SourceLanguage {
     AUTO, // Infer from file extension (.c, .cpp, .java), fallback to permissive
     C,
@@ -40,6 +40,7 @@ enum class DataType {
     INT,
     FLOAT,
     BOOL,
+    STRING,
     VOID,
     UNKNOWN, // Initial state before semantic analysis visits the node
     ERROR    // Poison type used to prevent cascading semantic errors
@@ -140,6 +141,7 @@ inline std::string dataTypeToString(DataType type) {
         case DataType::INT:     return "int";
         case DataType::FLOAT:   return "float";
         case DataType::BOOL:    return "bool";
+        case DataType::STRING:  return "string";
         case DataType::VOID:    return "void";
         case DataType::UNKNOWN: return "unknown";
         case DataType::ERROR:   return "error";

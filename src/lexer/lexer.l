@@ -1,4 +1,4 @@
-/* CodeForge Lexer (Fixed: MinGW C++17 Options, Indented Comments & ErrorReporter) */
+/* CodeForge Lexer (MinGW C++17, Indented Comments, String Literals & ErrorReporter) */
 %{
 #include <cstdio>
 #include <cstdlib>
@@ -28,6 +28,31 @@ void lexer_reset() {
     g_tokens.clear();
 }
 
+/* Strip surrounding quotes and decode common escape sequences */
+static std::string decodeStringLiteral(const char* text, int len) {
+    std::string out;
+    if (len < 2) {
+        return out;
+    }
+    out.reserve(static_cast<size_t>(len - 2));
+    for (int i = 1; i < len - 1; ++i) {
+        if (text[i] == '\\' && i + 1 < len - 1) {
+            char next = text[++i];
+            switch (next) {
+                case 'n':  out.push_back('\n'); break;
+                case 't':  out.push_back('\t'); break;
+                case 'r':  out.push_back('\r'); break;
+                case '"':  out.push_back('"');  break;
+                case '\\': out.push_back('\\'); break;
+                default:   out.push_back(next); break;
+            }
+        } else {
+            out.push_back(text[i]);
+        }
+    }
+    return out;
+}
+
 /* Record matched token metadata and return its Bison token ID */
 static int recordToken(const char* tokenName, int tokenId) {
     g_tokens.push_back(codeforge::TokenInfo{tokenName, yytext, line_num, token_col});
@@ -47,6 +72,8 @@ DIGIT       [0-9]
 ID          [a-zA-Z_][a-zA-Z0-9_]*
 INT_LIT     {DIGIT}+
 FLOAT_LIT   {DIGIT}+\.{DIGIT}+
+STRING_LIT  \"([^\"\\\r\n]|\\[^\r\n])*\"
+UNTERM_STR  \"([^\"\\\r\n]|\\[^\r\n])*\\?
 
 %%
 
@@ -131,7 +158,20 @@ FLOAT_LIT   {DIGIT}+\.{DIGIT}+
 ";"                     { return recordToken("TOK_SEMI", TOK_SEMI); }
 ","                     { return recordToken("TOK_COMMA", TOK_COMMA); }
 
-    /* Numeric Literals & Identifiers */
+    /* String, Numeric Literals & Identifiers */
+{STRING_LIT}            {
+                            yylval.sval = new std::string(decodeStringLiteral(yytext, yyleng));
+                            return recordToken("TOK_STRING_LIT", TOK_STRING_LIT);
+                        }
+{UNTERM_STR}            {
+                            if (g_error_reporter) {
+                                g_error_reporter->reportLexical(
+                                    line_num,
+                                    "Unterminated string literal",
+                                    token_col
+                                );
+                            }
+                        }
 {FLOAT_LIT}             { yylval.dval = std::stod(yytext); return recordToken("TOK_FLOAT_LIT", TOK_FLOAT_LIT); }
 {INT_LIT}               { yylval.ival = std::stoi(yytext); return recordToken("TOK_INT_LIT", TOK_INT_LIT); }
 {ID}                    { yylval.sval = new std::string(yytext); return recordToken("TOK_ID", TOK_ID); }

@@ -10,6 +10,9 @@
 
 #include "ast/ast.h"
 #include "ast/ast_printer.h"
+#include "codegen/tac.h"
+#include "codegen/tac_generator.h"
+#include "codegen/tac_interpreter.h"
 #include "common/error_reporter.h"
 #include "common/types.h"
 #include "semantic/semantic_analyzer.h"
@@ -119,7 +122,9 @@ void printUsage(const char* prog) {
               << "  --tokens                  Print lexer token stream\n"
               << "  --ast                     Print annotated Abstract Syntax Tree\n"
               << "  --symbols                 Print Symbol Table\n"
-              << "  --all                     Print tokens, AST, and Symbol Table\n"
+              << "  --tac                     Print generated Three-Address Code (TAC)\n"
+              << "  --output                  Print program execution output\n"
+              << "  --all                     Print tokens, AST, Symbol Table, TAC, and Output\n"
               << "  --json                    Emit structured JSON output for Web UI\n"
               << "  -h, --help                Show this help message\n";
 }
@@ -138,6 +143,8 @@ int main(int argc, char* argv[]) {
     bool showTokens = false;
     bool showAst = false;
     bool showSymbols = false;
+    bool showTac = false;
+    bool showOutput = false;
     bool jsonMode = false;
 
     for (int i = 1; i < argc; ++i) {
@@ -151,10 +158,16 @@ int main(int argc, char* argv[]) {
             showAst = true;
         } else if (arg == "--symbols") {
             showSymbols = true;
+        } else if (arg == "--tac") {
+            showTac = true;
+        } else if (arg == "--output") {
+            showOutput = true;
         } else if (arg == "--all") {
             showTokens = true;
             showAst = true;
             showSymbols = true;
+            showTac = true;
+            showOutput = true;
         } else if (arg == "--json") {
             jsonMode = true;
         } else if (arg.rfind("--lang=", 0) == 0) {
@@ -188,9 +201,11 @@ int main(int argc, char* argv[]) {
     }
 
     // Default CLI view when no specific section flags are passed
-    if (!showTokens && !showAst && !showSymbols) {
+    if (!showTokens && !showAst && !showSymbols && !showTac && !showOutput) {
         showAst = true;
         showSymbols = true;
+        showTac = true;
+        showOutput = true;
     }
 
     SourceLanguage effectiveLang =
@@ -224,7 +239,17 @@ int main(int argc, char* argv[]) {
         analyzer.analyze(*astRoot);
     }
 
-    bool success = !errorReporter.hasErrors();
+    // Run TAC generation & execution only if compilation succeeded with 0 errors
+    codeforge::TACGenerator tacGenerator;
+    codeforge::TACInterpreter tacInterpreter;
+    bool compiledCleanly = (astRoot != nullptr) && !errorReporter.hasErrors();
+
+    if (compiledCleanly) {
+        const codeforge::TACProgram& tacProgram = tacGenerator.generate(*astRoot);
+        tacInterpreter.execute(tacProgram);
+    }
+
+    bool success = compiledCleanly && !tacInterpreter.hasRuntimeError();
 
     if (jsonMode) {
         codeforge::ASTJsonSerializer astJson;
@@ -235,6 +260,9 @@ int main(int argc, char* argv[]) {
                   << "\"tokens\":" << tokensToJson(g_tokens) << ","
                   << "\"ast\":" << (astRoot ? astJson.toJson(*astRoot) : "null") << ","
                   << "\"symbols\":" << symbolTable.toJson() << ","
+                  << "\"tac\":" << tacGenerator.getProgram().toJson() << ","
+                  << "\"output\":" << tacInterpreter.outputsToJson() << ","
+                  << "\"runtimeError\":" << tacInterpreter.runtimeErrorToJson() << ","
                   << "\"errors\":" << errorReporter.toJson()
                   << "}\n";
         return success ? 0 : 1;
@@ -262,6 +290,23 @@ int main(int argc, char* argv[]) {
 
     if (errorReporter.hasErrors()) {
         errorReporter.printToTerminal();
+        return 1;
+    }
+
+    if (showTac) {
+        tacGenerator.getProgram().printToTerminal();
+        std::cout << "\n";
+    }
+
+    if (showOutput) {
+        tacInterpreter.printOutputToTerminal();
+        std::cout << "\n";
+    }
+
+    if (tacInterpreter.hasRuntimeError()) {
+        if (!showOutput) {
+            std::cout << "[" << tacInterpreter.getRuntimeError() << "]\n";
+        }
         return 1;
     }
 

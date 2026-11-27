@@ -1,4 +1,4 @@
-/* CodeForge Parser (Step 8: Verbose Error Diagnostics & Panic-Mode Recovery) */
+/* CodeForge Parser (Verbose Error Diagnostics, Panic-Mode Recovery & String Literals) */
 
 %error-verbose
 
@@ -69,6 +69,7 @@ static codeforge::DataType keywordToDataType(codeforge::TypeKeyword kw) {
 %token TOK_LPAREN TOK_RPAREN TOK_LBRACE TOK_RBRACE TOK_SEMI TOK_COMMA
 %token <ival> TOK_INT_LIT
 %token <dval> TOK_FLOAT_LIT
+%token <sval> TOK_STRING_LIT
 %token <sval> TOK_ID
 
 /* Precedence & Associativity (Lowest to Highest) */
@@ -270,6 +271,11 @@ expr
     | TOK_FLOAT_LIT { $$ = new codeforge::FloatLiteralNode($1, line_num); }
     | TOK_TRUE      { $$ = new codeforge::BoolLiteralNode($1, line_num); }
     | TOK_FALSE     { $$ = new codeforge::BoolLiteralNode($1, line_num); }
+    | TOK_STRING_LIT {
+        std::string text = *$1;
+        delete $1;
+        $$ = new codeforge::StringLiteralNode(std::move(text), line_num);
+    }
     | TOK_ID {
         std::string name = *$1;
         delete $1;

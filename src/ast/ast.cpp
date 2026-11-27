@@ -85,6 +85,12 @@ void ASTPrinter::visit(BoolLiteralNode& node) {
                 std::to_string(node.line) + "]");
 }
 
+void ASTPrinter::visit(StringLiteralNode& node) {
+    writeHeader("StringLiteral(\"" + escapeJson(node.value) + "\") : " +
+                dataTypeToString(node.inferredType) + " [line " +
+                std::to_string(node.line) + "]");
+}
+
 void ASTPrinter::visit(IdentifierNode& node) {
     std::string scopeInfo = node.resolvedScopeId >= 0
                                 ? ", scope#" + std::to_string(node.resolvedScopeId)
@@ -221,6 +227,15 @@ void ASTJsonSerializer::visit(BoolLiteralNode& node) {
          << "\"nodeType\":\"BoolLiteral\","
          << "\"line\":" << node.line << ","
          << "\"value\":" << (node.value ? "true" : "false") << ","
+         << "\"inferredType\":\"" << escapeJson(dataTypeToString(node.inferredType)) << "\""
+         << "}";
+}
+
+void ASTJsonSerializer::visit(StringLiteralNode& node) {
+    out_ << "{"
+         << "\"nodeType\":\"StringLiteral\","
+         << "\"line\":" << node.line << ","
+         << "\"value\":\"" << escapeJson(node.value) << "\","
          << "\"inferredType\":\"" << escapeJson(dataTypeToString(node.inferredType)) << "\""
          << "}";
 }
