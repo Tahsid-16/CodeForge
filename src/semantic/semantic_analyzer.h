@@ -38,6 +38,7 @@ public:
     void visit(IntLiteralNode& node) override;
     void visit(FloatLiteralNode& node) override;
     void visit(BoolLiteralNode& node) override;
+    void visit(StringLiteralNode& node) override;
     void visit(IdentifierNode& node) override;
     void visit(BinaryExprNode& node) override;
     void visit(UnaryExprNode& node) override;

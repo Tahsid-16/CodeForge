@@ -157,6 +157,10 @@ void SemanticAnalyzer::visit(BoolLiteralNode& node) {
     node.inferredType = DataType::BOOL;
 }
 
+void SemanticAnalyzer::visit(StringLiteralNode& node) {
+    node.inferredType = DataType::STRING;
+}
+
 void SemanticAnalyzer::visit(IdentifierNode& node) {
     Symbol* sym = symbolTable_.lookup(node.name);
     if (!sym) {
@@ -318,7 +322,8 @@ void SemanticAnalyzer::visit(BinaryExprNode& node) {
     // Equality: ==, !=
     if (isEqualityOp(node.op)) {
         bool validComparison = (isNumeric(lhs) && isNumeric(rhs)) ||
-                               (lhs == DataType::BOOL && rhs == DataType::BOOL);
+                               (lhs == DataType::BOOL && rhs == DataType::BOOL) ||
+                               (lhs == DataType::STRING && rhs == DataType::STRING);
         if (!validComparison) {
             errorReporter_.reportSemantic(
                 node.line,
