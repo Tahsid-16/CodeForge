@@ -288,7 +288,9 @@ printf(i);
     if (node.name !== undefined) details.push(node.name);
     if (node.varType !== undefined) details.push(node.varType);
     if (node.op !== undefined) details.push(`'${node.op}'`);
-    if (node.value !== undefined) details.push(JSON.stringify(node.value));
+    if (node.value !== undefined && typeof node.value !== "object") {
+      details.push(JSON.stringify(node.value));
+    }
     if (node.flavor !== undefined) details.push(node.flavor);
 
     const children = [];
