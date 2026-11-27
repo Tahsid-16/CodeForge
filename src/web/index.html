@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>CodeForge — Multi-Language Educational Compiler</title>
+
+  <!-- Optional web fonts. If offline, the CSS falls back to system fonts automatically. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">&lt;/&gt;</span>
+      <div class="brand-text">
+        <h1>CodeForge</h1>
+        <p class="subtitle">Unified C / C++ / Java Educational Compiler Pipeline</p>
+      </div>
+    </div>
+
+    <div class="controls">
+      <label class="control-group" for="langSelect">
+        <span>Mode</span>
+        <select id="langSelect">
+          <option value="c">C (Strict)</option>
+          <option value="cpp" selected>C++ (Strict)</option>
+          <option value="java">Java (Strict)</option>
+          <option value="auto">Auto (Permissive)</option>
+        </select>
+      </label>
+
+      <label class="control-group" for="presetSelect">
+        <span>Example</span>
+        <select id="presetSelect">
+          <option value="cpp_demo">C++ Demo (Scoping &amp; Conditions)</option>
+          <option value="c_demo">C Demo (While Loop &amp; Arithmetic)</option>
+          <option value="java_demo">Java Demo (For Loop &amp; Float Math)</option>
+          <option value="strings_shadow">Strings &amp; Shadowing</option>
+          <option value="error_demo">Error Diagnostics Demo</option>
+          <option value="runtime_guard">Runtime Infinite-Loop Guard</option>
+        </select>
+      </label>
+
+      <span class="divider" aria-hidden="true"></span>
+
+      <button id="clearBtn" class="btn btn-secondary" type="button">Clear</button>
+      <button id="runBtn" class="btn btn-primary" type="button" title="Ctrl + Enter">
+        <span class="play-icon" aria-hidden="true">&#9654;</span> Compile &amp; Run
+      </button>
+    </div>
+  </header>
+
+  <!-- Compiler pipeline strip (decorative) -->
+  <div class="pipeline" aria-label="Compiler pipeline stages">
+    <span class="stage">Lexer</span>
+    <span class="arrow" aria-hidden="true">&rarr;</span>
+    <span class="stage">Parser</span>
+    <span class="arrow" aria-hidden="true">&rarr;</span>
+    <span class="stage">Semantic Analysis</span>
+    <span class="arrow" aria-hidden="true">&rarr;</span>
+    <span class="stage">Three-Address Code</span>
+    <span class="arrow" aria-hidden="true">&rarr;</span>
+    <span class="stage">Execution</span>
+  </div>
+
+  <main class="workspace">
+    <!-- Left Pane: Source Editor -->
+    <section class="panel editor-panel">
+      <div class="panel-header">
+        <div class="file-tab">
+          <span class="file-icon" aria-hidden="true"></span>
+          <span class="panel-title" id="fileLabel">main.cpp</span>
+        </div>
+        <span class="hint">Shortcut: <kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
+      </div>
+
+      <div class="editor-wrap">
+        <pre id="lineNumbers" class="line-numbers" aria-hidden="true">1</pre>
+        <textarea
+          id="codeEditor"
+          class="code-editor"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          placeholder="Write C, C++, or Java subset code here..."
+        ></textarea>
+      </div>
+
+      <div class="panel-footer">
+        <div class="footer-left">
+          <span id="statusBadge" class="badge badge-idle">Ready</span>
+          <span id="cursorPos" class="cursor-pos">Ln 1, Col 1</span>
+        </div>
+        <span id="metaStats" class="meta-stats">Tokens: 0 | TAC: 0 | Time: —</span>
+      </div>
+    </section>
+
+    <!-- Right Pane: Compiler Pipeline Inspector -->
+    <section class="panel inspector-panel">
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-tab="output" type="button">
+          Output <span class="tab-count" id="count-output">0</span>
+        </button>
+        <button class="tab" data-tab="tac" type="button">
+          TAC <span class="tab-count" id="count-tac">0</span>
+        </button>
+        <button class="tab" data-tab="ast" type="button">
+          AST
+        </button>
+        <button class="tab" data-tab="symbols" type="button">
+          Symbols <span class="tab-count" id="count-symbols">0</span>
+        </button>
+        <button class="tab" data-tab="tokens" type="button">
+          Tokens <span class="tab-count" id="count-tokens">0</span>
+        </button>
+        <button class="tab" data-tab="errors" type="button">
+          Errors <span class="tab-count" id="count-errors">0</span>
+        </button>
+      </nav>
+
+      <div class="tab-content-wrap">
+        <div id="pane-output" class="tab-pane active">
+          <div class="empty-state">Click <strong>Compile &amp; Run</strong> to execute your program.</div>
+        </div>
+        <div id="pane-tac" class="tab-pane"></div>
+        <div id="pane-ast" class="tab-pane"></div>
+        <div id="pane-symbols" class="tab-pane"></div>
+        <div id="pane-tokens" class="tab-pane"></div>
+        <div id="pane-errors" class="tab-pane"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+
+  <!-- Small UI extra: live cursor position (Ln / Col) in the editor footer. Independent of app.js. -->
+  <script>
+    (() => {
+      const ed = document.getElementById("codeEditor");
+      const pos = document.getElementById("cursorPos");
+      const update = () => {
+        const before = ed.value.slice(0, ed.selectionStart);
+        const line = before.split("\n").length;
+        const col = ed.selectionStart - before.lastIndexOf("\n");
+        pos.textContent = "Ln " + line + ", Col " + col;
+      };
+      ["input", "keyup", "click", "focus", "select"].forEach((evt) =>
+        ed.addEventListener(evt, update)
+      );
+      document.getElementById("presetSelect").addEventListener("change", () => setTimeout(update, 0));
+      document.getElementById("clearBtn").addEventListener("click", () => setTimeout(update, 0));
+      update();
+    })();
+  </script>
+</body>
+</html>
