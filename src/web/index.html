@@ -1,162 +1,224 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="color-scheme" content="dark" />
-  <title>CodeForge — Multi-Language Educational Compiler</title>
+  <title>CodeForge — Compiler Lab</title>
 
-  <!-- Optional web fonts. If offline, the CSS falls back to system fonts automatically. -->
+  <!-- Set the theme before first paint so the page doesn't flash -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("cf.theme");
+        if (!t) t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- Web fonts are optional: if you are offline the CSS falls back to system fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,600;1,600&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="topbar">
+<div class="app" id="app">
+
+  <!-- ============================ Header ============================ -->
+  <header class="header">
+    <button id="sideToggle" class="icon-btn" type="button" aria-label="Show or hide the sidebar" title="Sidebar">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="2" y="3" width="14" height="12" rx="2"/><path d="M7 3v12"/></svg>
+    </button>
+
     <div class="brand">
-      <span class="brand-mark">&lt;/&gt;</span>
+      <span class="stamp" aria-hidden="true">cf</span>
       <div class="brand-text">
         <h1>CodeForge</h1>
-        <p class="subtitle">Unified C / C++ / Java Educational Compiler Pipeline</p>
+        <p>Watch C, C++ and Java programs move through each compiler stage</p>
       </div>
     </div>
 
-    <div class="controls">
-      <label class="control-group" for="langSelect">
-        <span>Mode</span>
-        <select id="langSelect">
-          <option value="c">C (Strict)</option>
-          <option value="cpp" selected>C++ (Strict)</option>
-          <option value="java">Java (Strict)</option>
-          <option value="auto">Auto (Permissive)</option>
-        </select>
-      </label>
+    <div class="spacer"></div>
 
-      <label class="control-group" for="presetSelect">
-        <span>Example</span>
-        <select id="presetSelect">
-          <option value="cpp_demo">C++ Demo (Scoping &amp; Conditions)</option>
-          <option value="c_demo">C Demo (While Loop &amp; Arithmetic)</option>
-          <option value="java_demo">Java Demo (For Loop &amp; Float Math)</option>
-          <option value="strings_shadow">Strings &amp; Shadowing</option>
-          <option value="error_demo">Error Diagnostics Demo</option>
-          <option value="runtime_guard">Runtime Infinite-Loop Guard</option>
-        </select>
-      </label>
-
-      <span class="divider" aria-hidden="true"></span>
-
-      <button id="clearBtn" class="btn btn-secondary" type="button">Clear</button>
-      <button id="runBtn" class="btn btn-primary" type="button" title="Ctrl + Enter">
-        <span class="play-icon" aria-hidden="true">&#9654;</span> Compile &amp; Run
-      </button>
+    <div class="seg" id="langSeg" role="radiogroup" aria-label="Language mode">
+      <button class="seg-btn" type="button" role="radio" data-lang="c" title="C, strict rules">C</button>
+      <button class="seg-btn" type="button" role="radio" data-lang="cpp" title="C++, strict rules">C++</button>
+      <button class="seg-btn" type="button" role="radio" data-lang="java" title="Java, strict rules">Java</button>
+      <button class="seg-btn" type="button" role="radio" data-lang="auto" title="Detect the language, permissive rules">Auto</button>
     </div>
+
+    <label class="switch" title="Compile automatically after you stop typing">
+      <input type="checkbox" id="autoRun" />
+      <span class="switch-track"></span>
+      <span>Run as I type</span>
+    </label>
+
+    <button id="themeBtn" class="icon-btn" type="button" aria-label="Switch between light and dark" title="Theme">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10.5A6.5 6.5 0 0 1 7.5 3 6.5 6.5 0 1 0 15 10.5Z"/></svg>
+    </button>
+
+    <button id="clearBtn" class="btn btn-quiet" type="button">Clear</button>
+    <button id="runBtn" class="btn btn-primary" type="button" title="Ctrl + Enter">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.2v9.6L10.6 6z"/></svg>
+      <span id="runLabel">Compile &amp; run</span>
+      <kbd>Ctrl&nbsp;↵</kbd>
+    </button>
   </header>
 
-  <!-- Compiler pipeline strip (decorative) -->
-  <div class="pipeline" aria-label="Compiler pipeline stages">
-    <span class="stage">Lexer</span>
-    <span class="arrow" aria-hidden="true">&rarr;</span>
-    <span class="stage">Parser</span>
-    <span class="arrow" aria-hidden="true">&rarr;</span>
-    <span class="stage">Semantic Analysis</span>
-    <span class="arrow" aria-hidden="true">&rarr;</span>
-    <span class="stage">Three-Address Code</span>
-    <span class="arrow" aria-hidden="true">&rarr;</span>
-    <span class="stage">Execution</span>
+  <!-- ============================= Shell ============================ -->
+  <div class="shell" id="shell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <section class="side-block">
+        <h2>Examples</h2>
+        <div id="presetList" class="preset-list"></div>
+      </section>
+
+      <section class="side-block">
+        <div class="side-head">
+          <h2>Recent runs</h2>
+          <button id="clearHistory" class="link-btn" type="button">Clear</button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </section>
+
+      <section class="side-block side-note">
+        <h2>How to read this page</h2>
+        <p>Compile a program, then follow it through the five stages on the right. A stage that fails marks the ones after it as skipped, and each error points to its source line.</p>
+      </section>
+    </aside>
+
+    <!-- Editor column -->
+    <section class="editor-col">
+      <div class="sheet" id="editorCard">
+        <div class="sheet-head">
+          <div class="file-chip">
+            <span class="file-dot" id="fileDot"></span>
+            <span id="fileLabel" class="file-name">main.cpp</span>
+            <span id="staleChip" class="stale" hidden>edited since last run</span>
+          </div>
+          <div class="sheet-tools">
+            <button id="copyCodeBtn" class="link-btn" type="button">Copy</button>
+            <button id="downloadBtn" class="link-btn" type="button">Download</button>
+          </div>
+        </div>
+
+        <div class="editor-body" id="editorBody">
+          <div class="rail rail-l" aria-hidden="true"></div>
+          <div class="gutter" id="gutter" aria-hidden="true"><div class="gutter-inner" id="gutterInner"></div></div>
+          <div class="code-stack">
+            <pre class="code-layer hl" id="highlight" aria-hidden="true"><div class="hl-inner" id="hlInner"></div></pre>
+            <textarea
+              id="codeEditor"
+              class="code-layer code-editor"
+              wrap="off"
+              spellcheck="false"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              aria-label="Source code"
+              placeholder="Write C, C++ or Java code here, then press Ctrl + Enter."
+            ></textarea>
+          </div>
+          <div class="rail rail-r" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <!-- Problems -->
+      <div class="notes" id="problems" data-open="false">
+        <button class="notes-head" id="problemsToggle" type="button" aria-expanded="false">
+          <span class="notes-title">Problems</span>
+          <span class="count" id="problemsCount">0</span>
+          <span class="notes-hint" id="problemsHint">Run the program to see diagnostics.</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5l4 4 4-4"/></svg>
+        </button>
+        <div class="notes-body" id="problemsList"></div>
+      </div>
+    </section>
+
+    <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize panels" tabindex="0" title="Drag to resize. Double-click to reset."></div>
+
+    <!-- Inspector column -->
+    <section class="inspector-col">
+      <div class="report" id="inspector" data-view="output">
+
+        <nav class="stepper" id="stepper" aria-label="Compiler stages">
+          <button class="step idle" type="button" data-stage="lexer" data-view="tokens">
+            <span class="step-dot">1</span>
+            <span class="step-name">Lexer</span>
+            <span class="step-sub" id="sub-lexer">tokens</span>
+          </button>
+          <button class="step idle" type="button" data-stage="parser" data-view="ast">
+            <span class="step-dot">2</span>
+            <span class="step-name">Parser</span>
+            <span class="step-sub" id="sub-parser">syntax tree</span>
+          </button>
+          <button class="step idle" type="button" data-stage="semantic" data-view="symbols">
+            <span class="step-dot">3</span>
+            <span class="step-name">Semantics</span>
+            <span class="step-sub" id="sub-semantic">symbols</span>
+          </button>
+          <button class="step idle" type="button" data-stage="tac" data-view="tac">
+            <span class="step-dot">4</span>
+            <span class="step-name">TAC</span>
+            <span class="step-sub" id="sub-tac">3-address code</span>
+          </button>
+          <button class="step idle active" type="button" data-stage="run" data-view="output">
+            <span class="step-dot">5</span>
+            <span class="step-name">Run</span>
+            <span class="step-sub" id="sub-run">output</span>
+          </button>
+        </nav>
+
+        <div class="view-bar">
+          <div class="view-text">
+            <h2 id="viewTitle">Program output</h2>
+            <p id="viewHint">What the program printed when it ran.</p>
+          </div>
+
+          <div class="vtools" data-for="tokens">
+            <input id="tokenFilter" class="filter" type="search" placeholder="Filter tokens" aria-label="Filter tokens" />
+            <div class="mini-seg" role="group" aria-label="Token layout">
+              <button id="tokChips" type="button" class="active">Chips</button>
+              <button id="tokTable" type="button">Table</button>
+            </div>
+          </div>
+          <div class="vtools" data-for="ast">
+            <button id="astExpand" class="link-btn" type="button">Expand all</button>
+            <button id="astCollapse" class="link-btn" type="button">Collapse all</button>
+          </div>
+          <div class="vtools" data-for="tac">
+            <button id="copyTacBtn" class="link-btn" type="button">Copy</button>
+          </div>
+          <div class="vtools" data-for="output">
+            <button id="copyOutBtn" class="link-btn" type="button">Copy</button>
+          </div>
+        </div>
+
+        <div class="view-body">
+          <div id="pane-output" class="pane active"></div>
+          <div id="pane-tokens" class="pane"></div>
+          <div id="pane-ast" class="pane"></div>
+          <div id="pane-symbols" class="pane"></div>
+          <div id="pane-tac" class="pane"></div>
+        </div>
+      </div>
+    </section>
   </div>
 
-  <main class="workspace">
-    <!-- Left Pane: Source Editor -->
-    <section class="panel editor-panel">
-      <div class="panel-header">
-        <div class="file-tab">
-          <span class="file-icon" aria-hidden="true"></span>
-          <span class="panel-title" id="fileLabel">main.cpp</span>
-        </div>
-        <span class="hint">Shortcut: <kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
-      </div>
+  <!-- =========================== Status bar ========================= -->
+  <footer class="statusbar">
+    <span id="statusBadge" class="badge badge-idle">Ready</span>
+    <span id="statStats" class="stat">Tokens 0 · TAC 0 · Time —</span>
+    <span class="spacer"></span>
+    <span id="statCursor" class="stat">Ln 1, Col 1</span>
+    <span id="statLang" class="stat">C++ · 4 spaces</span>
+  </footer>
+</div>
 
-      <div class="editor-wrap">
-        <pre id="lineNumbers" class="line-numbers" aria-hidden="true">1</pre>
-        <textarea
-          id="codeEditor"
-          class="code-editor"
-          spellcheck="false"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
-          placeholder="Write C, C++, or Java subset code here..."
-        ></textarea>
-      </div>
-
-      <div class="panel-footer">
-        <div class="footer-left">
-          <span id="statusBadge" class="badge badge-idle">Ready</span>
-          <span id="cursorPos" class="cursor-pos">Ln 1, Col 1</span>
-        </div>
-        <span id="metaStats" class="meta-stats">Tokens: 0 | TAC: 0 | Time: —</span>
-      </div>
-    </section>
-
-    <!-- Right Pane: Compiler Pipeline Inspector -->
-    <section class="panel inspector-panel">
-      <nav class="tabs" role="tablist">
-        <button class="tab active" data-tab="output" type="button">
-          Output <span class="tab-count" id="count-output">0</span>
-        </button>
-        <button class="tab" data-tab="tac" type="button">
-          TAC <span class="tab-count" id="count-tac">0</span>
-        </button>
-        <button class="tab" data-tab="ast" type="button">
-          AST
-        </button>
-        <button class="tab" data-tab="symbols" type="button">
-          Symbols <span class="tab-count" id="count-symbols">0</span>
-        </button>
-        <button class="tab" data-tab="tokens" type="button">
-          Tokens <span class="tab-count" id="count-tokens">0</span>
-        </button>
-        <button class="tab" data-tab="errors" type="button">
-          Errors <span class="tab-count" id="count-errors">0</span>
-        </button>
-      </nav>
-
-      <div class="tab-content-wrap">
-        <div id="pane-output" class="tab-pane active">
-          <div class="empty-state">Click <strong>Compile &amp; Run</strong> to execute your program.</div>
-        </div>
-        <div id="pane-tac" class="tab-pane"></div>
-        <div id="pane-ast" class="tab-pane"></div>
-        <div id="pane-symbols" class="tab-pane"></div>
-        <div id="pane-tokens" class="tab-pane"></div>
-        <div id="pane-errors" class="tab-pane"></div>
-      </div>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
-
-  <!-- Small UI extra: live cursor position (Ln / Col) in the editor footer. Independent of app.js. -->
-  <script>
-    (() => {
-      const ed = document.getElementById("codeEditor");
-      const pos = document.getElementById("cursorPos");
-      const update = () => {
-        const before = ed.value.slice(0, ed.selectionStart);
-        const line = before.split("\n").length;
-        const col = ed.selectionStart - before.lastIndexOf("\n");
-        pos.textContent = "Ln " + line + ", Col " + col;
-      };
-      ["input", "keyup", "click", "focus", "select"].forEach((evt) =>
-        ed.addEventListener(evt, update)
-      );
-      document.getElementById("presetSelect").addEventListener("change", () => setTimeout(update, 0));
-      document.getElementById("clearBtn").addEventListener("click", () => setTimeout(update, 0));
-      update();
-    })();
-  </script>
+<script src="app.js"></script>
 </body>
 </html>
